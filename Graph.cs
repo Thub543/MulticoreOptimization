@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Repräsentiert einen Graphen und bestimmt seine Eigenschaften

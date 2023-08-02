@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 internal class Program
 {
@@ -28,18 +30,26 @@ internal class Program
         // *****************************************************************************************
         // Graphen aufbauen und analysieren
         // *****************************************************************************************
+        var sw = new Stopwatch();
+        sw.Start();
         var graph = Graph.FromFile(filename);
+        sw.Stop();
+        Console.WriteLine();
+        Console.WriteLine($"Graph in {sw.ElapsedMilliseconds} ms analysiert.");
         Console.WriteLine();
         PrintInColor("ANALYSE DES GRAPHEN:", ConsoleColor.Blue);
 
-        Console.WriteLine($"Distanzmatrix des Graphen (leer = unendlich):");
-        PrintDistanceMatrix(graph.DistanceMatrix);
+        if (graph.NodeCount < 100)
+        {
+            Console.WriteLine($"Distanzmatrix des Graphen (leer = unendlich):");
+            PrintDistanceMatrix(graph.DistanceMatrix);
+        }
 
         Console.WriteLine($"Anzahl der Knoten: {graph.NodeCount}");
         Console.WriteLine($"Anzahl der Kanten: {graph.EdgeCount}");
 
         Console.WriteLine($"Knotengrade:");
-        var degrees = graph.Nodes.Select(node => $"[{node}]: {graph.GetDegree(node)}");
+        var degrees = graph.Nodes.Take(100).Select(node => $"[{node}]: {graph.GetDegree(node)}");
         Console.WriteLine(string.Join(", ", degrees));
 
         var subgraphs = graph.GetSubgraphs().ToList();
@@ -48,7 +58,7 @@ internal class Program
             Console.WriteLine(JsonSerializer.Serialize(subgraph));
 
         Console.WriteLine($"Exzentrizitäten der Knoten:");
-        var eccentricities = graph.Nodes.Select(node => $"[{node}]: {(graph.GetEccentricity(node)?.ToString() ?? "inf")}");
+        var eccentricities = graph.Nodes.Take(100).Select(node => $"[{node}]: {(graph.GetEccentricity(node)?.ToString() ?? "inf")}");
         Console.WriteLine(string.Join(", ", eccentricities));
 
         Console.WriteLine($"Durchmesser des Graphen: {graph.Diameter?.ToString() ?? "inf"}");
@@ -57,11 +67,23 @@ internal class Program
         Console.Write($"Zentrum des Graphen:             ");
         Console.WriteLine(JsonSerializer.Serialize(graph.Center));
 
-        Console.Write($"Artikulationspunkte des Graphen: ");
-        Console.WriteLine(JsonSerializer.Serialize(graph.GetArticulations()));
+        sw.Restart();
+        var articulations = graph.GetArticulations().ToList();
+        sw.Stop();
+        Console.Write($"Artikulationspunkte des Graphen ({sw.ElapsedMilliseconds} ms): ");
+        Console.WriteLine(JsonSerializer.Serialize(articulations));
 
-        Console.Write($"Brücken des Graphen:             ");
-        Console.WriteLine(JsonSerializer.Serialize(graph.GetEdgeSeparators()));
+        sw.Restart();
+        var separators = graph.GetEdgeSeparators().ToList();
+        sw.Stop();
+        Console.Write($"Brücken des Graphen: ({sw.ElapsedMilliseconds} ms): ");
+        Console.WriteLine(JsonSerializer.Serialize(separators));
+
+        //sw.Restart();
+        //separators = await graph.GetEdgeSeparatorsParallel();
+        //sw.Stop();
+        //Console.Write($"Brücken des Graphen multithread: ({sw.ElapsedMilliseconds} ms): ");
+        //Console.WriteLine(JsonSerializer.Serialize(separators));
     }
 
     /// <summary>
