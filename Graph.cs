@@ -238,6 +238,19 @@ public class Graph
         return new Graph(adjacency);
     }
 
+    
+    public IEnumerable<int> GetArticulationsSync()
+    {
+        var subgraphCount = GetSubgraphs().Count();
+        // Geht die Knoten 0, 1, ..., NodeCount-1 durch.
+        foreach (var node in Nodes)
+        {
+            var newGraph = RemoveNode(node);
+            if (newGraph.GetSubgraphs().Count() > subgraphCount)
+                yield return node;
+        }
+    }
+    
     /// <summary>
     /// Liefert eine Liste der Artikulationspunkte. Dabei entfernen wir den zu prüfenden Knoten und
     /// prüfen, ob der Graph in mehrere Teilgraphen als vorher zerfällt.

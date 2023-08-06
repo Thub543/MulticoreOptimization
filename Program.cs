@@ -68,11 +68,17 @@ internal class Program
         Console.WriteLine(JsonSerializer.Serialize(graph.Center));
 
         sw.Restart();
-        var articulations = graph.GetArticulations().ToList();
+        var articulationsSync = graph.GetArticulationsSync().ToList();
         sw.Stop();
-        Console.Write($"Artikulationspunkte des Graphen ({sw.ElapsedMilliseconds} ms): ");
-        Console.WriteLine(JsonSerializer.Serialize(articulations));
-
+        Console.Write($"Artikulationspunkte des Graphen sync ({sw.ElapsedMilliseconds} ms): ");
+        Console.WriteLine(JsonSerializer.Serialize(articulationsSync));
+        
+        sw.Restart();
+        var articulationsAsync = await graph.GetArticulationsAsync();
+        sw.Stop();
+        Console.Write($"Artikulationspunkte des Graphen multithread({sw.ElapsedMilliseconds} ms): ");
+        Console.WriteLine(JsonSerializer.Serialize(articulationsAsync));
+        
         sw.Restart();
         var separators = graph.GetEdgeSeparators().ToList();
         sw.Stop();
