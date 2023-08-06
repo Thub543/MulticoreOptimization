@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 internal class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         // *****************************************************************************************
         // Datei auswählen
@@ -76,14 +76,14 @@ internal class Program
         sw.Restart();
         var separators = graph.GetEdgeSeparators().ToList();
         sw.Stop();
-        Console.Write($"Brücken des Graphen: ({sw.ElapsedMilliseconds} ms): ");
+        Console.Write($"Brücken des Graphen sync: ({sw.ElapsedMilliseconds} ms): ");
         Console.WriteLine(JsonSerializer.Serialize(separators));
 
-        //sw.Restart();
-        //separators = await graph.GetEdgeSeparatorsParallel();
-        //sw.Stop();
-        //Console.Write($"Brücken des Graphen multithread: ({sw.ElapsedMilliseconds} ms): ");
-        //Console.WriteLine(JsonSerializer.Serialize(separators));
+        sw.Restart();
+        var separatorsAsync = await graph.GetEdgeSeparatorsParallel();
+        sw.Stop();
+        Console.Write($"Brücken des Graphen multithread: ({sw.ElapsedMilliseconds} ms): ");
+        Console.WriteLine(JsonSerializer.Serialize(separatorsAsync));
     }
 
     /// <summary>

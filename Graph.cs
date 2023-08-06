@@ -243,16 +243,22 @@ public class Graph
     /// prüfen, ob der Graph in mehrere Teilgraphen als vorher zerfällt.
     /// https://mathworld.wolfram.com/ArticulationVertex.html
     /// </summary>
-    public IEnumerable<int> GetArticulations()
-    {
+    public async Task<List<int>> GetArticulationsAsync() {
         var subgraphCount = GetSubgraphs().Count();
+        var tasks = new List<Task<int>>();  
         // Geht die Knoten 0, 1, ..., NodeCount-1 durch.
-        foreach (var node in Nodes)
-        {
-            var newGraph = RemoveNode(node);
-            if (newGraph.GetSubgraphs().Count() > subgraphCount)
-                yield return node;
+        foreach (var node in Nodes) {
+            var task = Task.Run(() => {
+                var newGraph = RemoveNode(node);
+                if (newGraph.GetSubgraphs().Count() > subgraphCount) 
+                    return node;
+                
+                return -1;
+            });
+            tasks.Add(task);
         }
+        await Task.WhenAll(tasks);
+        return tasks.Select(s => s.Result).Where(n => n != -1).ToList();
     }
 
     /// <summary>
@@ -287,5 +293,27 @@ public class Graph
                     if (newGraph.GetSubgraphs().Count() > subgraphCount)
                         yield return new int[] { node2, node1 };
                 }
+    }
+    
+    
+    public async Task<List<int[]>> GetEdgeSeparatorsParallel() {
+        var subgraphCount = GetSubgraphs().Count();
+        List<int[]> result = new();
+        var tasks = new Task[NodeCount];
+        for (var node1 = 0; node1 < NodeCount; node1++) {
+            var n = node1;
+            tasks[node1] = Task.Run(() => {
+                for (var node2 = 0; node2 <= n; node2++) {
+                    if (_adjacency[n, node2] <= 0) continue;
+                    var newGraph = RemoveEdge(n, node2);
+                    if (newGraph.GetSubgraphs().Count() <= subgraphCount) continue;
+                    lock (result) {
+                        result.Add(new int[] { node2, n });
+                    }
+                }
+            });
+        }
+        await Task.WhenAll(tasks);
+        return result;
     }
 }
