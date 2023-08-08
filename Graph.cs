@@ -243,8 +243,7 @@ public class Graph
     {
         var subgraphCount = GetSubgraphs().Count();
         // Geht die Knoten 0, 1, ..., NodeCount-1 durch.
-        foreach (var node in Nodes)
-        {
+        foreach (var node in Nodes){
             var newGraph = RemoveNode(node);
             if (newGraph.GetSubgraphs().Count() > subgraphCount)
                 yield return node;
@@ -259,13 +258,11 @@ public class Graph
     public async Task<List<int>> GetArticulationsAsync() {
         var subgraphCount = GetSubgraphs().Count();
         var tasks = new List<Task<int>>();  
-        // Geht die Knoten 0, 1, ..., NodeCount-1 durch.
         foreach (var node in Nodes) {
             var task = Task.Run(() => {
                 var newGraph = RemoveNode(node);
                 if (newGraph.GetSubgraphs().Count() > subgraphCount) 
                     return node;
-                
                 return -1;
             });
             tasks.Add(task);
