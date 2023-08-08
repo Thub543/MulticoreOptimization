@@ -1,285 +1,221 @@
-# Graphen in C# analysieren
+# Multicore Optimization
 
-Dies ist eine Implementierung des bekannten "Graphenprogrammes" in C# mit echten mehrdimensionalen Arrays, nullable Types am Stack und Properties.
-
-## Start des Programmes
-
-Voraussetzung ist eine installierte [.NET SDK in der Version 6](https://dotnet.microsoft.com/en-us/download) oder höher. Klone das Repository mit
-```
-git clone https://github.com/schletz/GraphenprogrammDotNet
-```
-
-Führe danach im Ordner des Repositories die Datei *start.cmd* (Windows) bzw. *start.sh* (macOS, Windows git bash) aus.
-Die Algorithmen sind in der Datei [Graph.cs](Graph.cs) in den Kommentaren erklärt.
-
-Es werden 7 Textdateien mit Graphen mitgeliefert (gezeichnet mit <small>https://graphonline.ru/en</small>):
-
-|                                                     |                                                             |
-| --------------------------------------------------- | ----------------------------------------------------------- |
-| **3n_isolated**                                     | **6n_01**                                                   |
-| [![](3n_isolated_0642.svg)](3n_isolated_0642.svg)   | [![](6n_01_0642.svg)](6n_01_0642.svg)                       |
-| **6n_full**                                         | **8n_full_isolated**                                        |
-| [![](6n_full_0642.svg)](6n_full_0642.svg)           | [![](8n_full_isolated_0642.svg)](8n_full_isolated_0642.svg) |
-| **24n_01**                                          | **24n_02**                                                  |
-| [![](24n_01_1949.svg)](24n_01_1949.svg)             | [![](24n_02_1949.svg)](24n_02_1949.svg)                     |
-| **24n_weighted**                                    |                                                             |
-| [![](24n_weighted_0923.svg)](24n_weighted_0923.svg) |                                                             |
-
-![](screen01_1027.png)
-
-## Analyseergebnisse
-
-### 24n_01.csv
-```
-ANALYSE DES GRAPHEN:
-Distanzmatrix des Graphen (leer = unendlich):
-     0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
-  0  0  1  2  2
-  1  1  0  1  1
-  2  2  1  0  1
-  3  2  1  1  0
-  4              0  1  1  1  1  2  2  2  3  3  4  4  3  5  5  4  4
-  5              1  0  1  2  2  3  3  2  3  4  5  5  4  6  6  5  5
-  6              1  1  0  2  2  3  3  1  2  4  5  5  4  6  6  5  5
-  7              1  2  2  0  1  1  1  3  4  2  3  3  2  4  4  3  3
-  8              1  2  2  1  0  2  2  3  4  3  4  4  3  5  5  4  4
-  9              2  3  3  1  2  0  1  4  5  2  3  3  2  4  4  3  3
- 10              2  3  3  1  2  1  0  4  5  1  2  2  1  3  3  2  2
- 11              2  2  1  3  3  4  4  0  1  5  6  6  5  7  7  6  6
- 12              3  3  2  4  4  5  5  1  0  6  7  7  6  8  8  7  7
- 13              3  4  4  2  3  2  1  5  6  0  1  2  2  2  2  3  3
- 14              4  5  5  3  4  3  2  6  7  1  0  1  2  1  1  3  3
- 15              4  5  5  3  4  3  2  6  7  2  1  0  1  2  2  2  2
- 16              3  4  4  2  3  2  1  5  6  2  2  1  0  3  3  1  1
- 17              5  6  6  4  5  4  3  7  8  2  1  2  3  0  1  4  4
- 18              5  6  6  4  5  4  3  7  8  2  1  2  3  1  0  4  4
- 19              4  5  5  3  4  3  2  6  7  3  3  2  1  4  4  0  1
- 20              4  5  5  3  4  3  2  6  7  3  3  2  1  4  4  1  0
- 21                                                                 0  1  1
- 22                                                                 1  0  1
- 23                                                                 1  1  0
-Anzahl der Knoten: 24
-Anzahl der Kanten: 29
-Knotengrade:
-[0]: 1, [1]: 3, [2]: 2, [3]: 2, [4]: 4, [5]: 2, [6]: 3, [7]: 4, [8]: 2, [9]: 2, [10]: 4, [11]: 2,
-[12]: 1, [13]: 2, [14]: 4, [15]: 2, [16]: 4, [17]: 2, [18]: 2, [19]: 2, [20]: 2, [21]: 2, [22]: 2, [23]: 2
-Der Graph hat 3 Komponenten:
-[0,1,2,3]
-[4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
-[21,22,23]
-Exzentrizitäten der Knoten:
-[0]: inf, [1]: inf, [2]: inf, [3]: inf, [4]: inf, [5]: inf, [6]: inf, [7]: inf, [8]: inf, [9]: inf,
-[10]: inf, [11]: inf, [12]: inf, [13]: inf, [14]: inf, [15]: inf, [16]: inf, [17]: inf, [18]: inf,
-[19]: inf, [20]: inf, [21]: inf, [22]: inf, [23]: inf
-Durchmesser des Graphen: inf
-Radius des Graphen:      inf
-Zentrum des Graphen:             []
-Artikulationspunkte des Graphen: [1,4,6,7,10,11,14,16]
-Brücken des Graphen:             [[0,1],[6,11],[11,12]]
-```
-
-### 24n_02.csv
+The reason for the project is to deal with asynchronous methods and how they can affect the performance.
+We will look at the changed methods and compare them with the previous implementation.
 
 ```
-ANALYSE DES GRAPHEN:
-Distanzmatrix des Graphen (leer = unendlich):
-     0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
-  0  0  1  2  2  3  4  4  4  4  5  5  5  6  6  7  7  6  8  8  7  7  8  9  9
-  1  1  0  1  1  2  3  3  3  3  4  4  4  5  5  6  6  5  7  7  6  6  7  8  8
-  2  2  1  0  1  1  2  2  2  2  3  3  3  4  4  5  5  4  6  6  5  5  6  7  7
-  3  2  1  1  0  1  2  2  2  2  3  3  3  4  4  5  5  4  6  6  5  5  6  7  7
-  4  3  2  1  1  0  1  1  1  1  2  2  2  3  3  4  4  3  5  5  4  4  5  6  6
-  5  4  3  2  2  1  0  1  2  2  3  3  2  3  4  5  5  4  6  6  5  5  6  7  7
-  6  4  3  2  2  1  1  0  2  2  3  3  1  2  4  5  5  4  6  6  5  5  6  7  7
-  7  4  3  2  2  1  2  2  0  1  1  1  3  4  2  3  3  2  4  4  3  3  4  5  5
-  8  4  3  2  2  1  2  2  1  0  2  2  3  4  3  4  4  3  5  5  4  4  5  6  6
-  9  5  4  3  3  2  3  3  1  2  0  1  4  5  2  3  3  2  4  4  3  3  4  5  5
- 10  5  4  3  3  2  3  3  1  2  1  0  4  5  1  2  2  1  3  3  2  2  3  4  4
- 11  5  4  3  3  2  2  1  3  3  4  4  0  1  5  6  6  5  7  7  6  6  7  8  8
- 12  6  5  4  4  3  3  2  4  4  5  5  1  0  6  7  7  6  8  8  7  7  8  9  9
- 13  6  5  4  4  3  4  4  2  3  2  1  5  6  0  1  2  2  2  2  3  3  4  5  5
- 14  7  6  5  5  4  5  5  3  4  3  2  6  7  1  0  1  2  1  1  3  3  4  5  5
- 15  7  6  5  5  4  5  5  3  4  3  2  6  7  2  1  0  1  2  2  2  2  3  4  4
- 16  6  5  4  4  3  4  4  2  3  2  1  5  6  2  2  1  0  3  3  1  1  2  3  3
- 17  8  7  6  6  5  6  6  4  5  4  3  7  8  2  1  2  3  0  1  4  4  5  6  6
- 18  8  7  6  6  5  6  6  4  5  4  3  7  8  2  1  2  3  1  0  4  4  5  6  6
- 19  7  6  5  5  4  5  5  3  4  3  2  6  7  3  3  2  1  4  4  0  1  2  3  3
- 20  7  6  5  5  4  5  5  3  4  3  2  6  7  3  3  2  1  4  4  1  0  1  2  2
- 21  8  7  6  6  5  6  6  4  5  4  3  7  8  4  4  3  2  5  5  2  1  0  1  1
- 22  9  8  7  7  6  7  7  5  6  5  4  8  9  5  5  4  3  6  6  3  2  1  0  1
- 23  9  8  7  7  6  7  7  5  6  5  4  8  9  5  5  4  3  6  6  3  2  1  1  0
-Anzahl der Knoten: 24
-Anzahl der Kanten: 32
-Knotengrade:
-[0]: 1, [1]: 3, [2]: 3, [3]: 3, [4]: 6, [5]: 2, [6]: 3, [7]: 4, [8]: 2, [9]: 2, [10]: 4, [11]: 2,
-[12]: 1, [13]: 2, [14]: 4, [15]: 2, [16]: 4, [17]: 2, [18]: 2, [19]: 2, [20]: 3, [21]: 3, [22]: 2, [23]: 2
-Der Graph hat 1 Komponenten:
-[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
-Exzentrizitäten der Knoten:
-[0]: 9, [1]: 8, [2]: 7, [3]: 7, [4]: 6, [5]: 7, [6]: 7, [7]: 5, [8]: 6, [9]: 5, [10]: 5, [11]: 8,
-[12]: 9, [13]: 6, [14]: 7, [15]: 7, [16]: 6, [17]: 8, [18]: 8, [19]: 7, [20]: 7, [21]: 8, [22]: 9, [23]: 9
-Durchmesser des Graphen: 9
-Radius des Graphen:      5
-Zentrum des Graphen:             [7,9,10]
-Artikulationspunkte des Graphen: [1,4,6,7,10,11,14,16,20,21]
-Brücken des Graphen:             [[0,1],[6,11],[11,12],[20,21]]
+https://github.com/Thub543/MulticoreOptimization.git
 ```
 
-### 3n_isolated.csv
 
+To execute the program in the CLI:
 ```
-ANALYSE DES GRAPHEN:
-Distanzmatrix des Graphen (leer = unendlich):
-     0  1  2
-  0  0      
-  1     0   
-  2        0
-Anzahl der Knoten: 3
-Anzahl der Kanten: 0
-Knotengrade:
-[0]: 0, [1]: 0, [2]: 0
-Der Graph hat 3 Komponenten:
-[0]
-[1]
-[2]
-Exzentrizitäten der Knoten:
-[0]: inf, [1]: inf, [2]: inf
-Durchmesser des Graphen: inf
-Radius des Graphen:      inf
-Zentrum des Graphen:             []
-Artikulationspunkte des Graphen: []
-Brücken des Graphen:             []
+dotnet run -c Release
 ```
 
-### 6n_01.csv
+### GetEdgeSeparatorsParallel()
 
+This is the original implementation of the GetEdgeSeparators method, which is responsible for identifying bridges in a graph.
 ```
-ANALYSE DES GRAPHEN:
-Distanzmatrix des Graphen (leer = unendlich):
-     0  1  2  3  4  5
-  0  0  1  1  1  2  2
-  1  1  0  1  2  1  2
-  2  1  1  0  2  2  1
-  3  1  2  2  0  1  1
-  4  2  1  2  1  0  1
-  5  2  2  1  1  1  0
-Anzahl der Knoten: 6
-Anzahl der Kanten: 9
-Knotengrade:
-[0]: 3, [1]: 3, [2]: 3, [3]: 3, [4]: 3, [5]: 3
-Der Graph hat 1 Komponenten:
-[0,1,2,3,4,5]
-Exzentrizitäten der Knoten:
-[0]: 2, [1]: 2, [2]: 2, [3]: 2, [4]: 2, [5]: 2
-Durchmesser des Graphen: 2
-Radius des Graphen:      2
-Zentrum des Graphen:             [0,1,2,3,4,5]
-Artikulationspunkte des Graphen: []
-Brücken des Graphen:             []
+public IEnumerable<int[]> GetEdgeSeparators()
+    {
+        var subgraphCount = GetSubgraphs().Count();
+        for (int node1 = 0; node1 < NodeCount; node1++)
+            for (int node2 = 0; node2 <= node1; node2++)
+                if (_adjacency[node1, node2] > 0)
+                {
+                    var newGraph = RemoveEdge(node1, node2);
+                    if (newGraph.GetSubgraphs().Count() > subgraphCount)
+                        yield return new int[] { node2, node1 };
+                }
+    } 
 ```
+As we can see, the method has a synchronous flow.
 
-### 6n_full.csv
 
+So now let's run the new implementation with parallelization.
 ```
-ANALYSE DES GRAPHEN:
-Distanzmatrix des Graphen (leer = unendlich):
-     0  1  2  3  4  5
-  0  0  1  1  1  1  1
-  1  1  0  1  1  1  1
-  2  1  1  0  1  1  1
-  3  1  1  1  0  1  1
-  4  1  1  1  1  0  1
-  5  1  1  1  1  1  0
-Anzahl der Knoten: 6
-Anzahl der Kanten: 15
-Knotengrade:
-[0]: 5, [1]: 5, [2]: 5, [3]: 5, [4]: 5, [5]: 5
-Der Graph hat 1 Komponenten:
-[0,1,2,3,4,5]
-Exzentrizitäten der Knoten:
-[0]: 1, [1]: 1, [2]: 1, [3]: 1, [4]: 1, [5]: 1
-Durchmesser des Graphen: 1
-Radius des Graphen:      1
-Zentrum des Graphen:             [0,1,2,3,4,5]
-Artikulationspunkte des Graphen: []
-Brücken des Graphen:             []
+    public async Task<List<int[]>> GetEdgeSeparatorsParallel() {
+        var subgraphCount = GetSubgraphs().Count();
+        List<int[]> result = new();
+        var tasks = new Task[NodeCount];
+        for (var node1 = 0; node1 < NodeCount; node1++) {
+            var n = node1;
+            tasks[node1] = Task.Run(() => {
+                for (var node2 = 0; node2 <= n; node2++) {
+                    if (_adjacency[n, node2] <= 0) continue;
+                    var newGraph = RemoveEdge(n, node2);
+                    if (newGraph.GetSubgraphs().Count() <= subgraphCount) continue;
+                    lock (result) {
+                        result.Add(new int[] { node2, n });
+                    }
+                }
+            });
+        }
+        await Task.WhenAll(tasks);
+        return result;
+    }
 ```
 
-### 8n_full_isolated.csv
+At first glance there is not much difference from before it does its main task as it should do, but a small optimization has been added.
+
+A task array is instantiated to collect the tasks that will be created later.
+Then a task is started for each node in the first loop to check if the node is a bridge node or not.
+We can start the tasks for the calculation of each node in parallel. 
+This is possible because we don't need the results of previous calculations.
+
+Then ```await Task.WhenAll(tasks);``` is used to wait on all tasks until all tasks are finished
+
+But there are two more things to mention:
+
+1. var n = node1
+
+Multiple tasks would access node1 which means multiple tasks accessing shared memory. 
+This can lead to problems so you have to be very careful to identify and use the shared memory correctly.
+
+Our problem is the latency of the start of the task. 
+The loop counts node1 to its maximum value and this (invalid) value would be used which in a task which will
+lead to an IndexOutOfRange at _adjcency. 
+This is also called race condition, more than one threads trying to do something with the value, 
+in this case the for loop thread wins.
+
+By assigning node1 to a local variable n inside the loop, you ensure that each task captures a separate 
+variable with a separate value, so each task gets its own, correct value for the node it's supposed to process.
+
+
+2. lock()
+
+["It is safe to perform multiple read operations on a List<T>, but issues can occur if the collection is modified while it's being read.
+To ensure thread safety, lock the collection during a read or write operation."](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1?view=net-7.0#thread-safety)
+
+Lists are not thread-safe, the solution for this is to implement a lock where the tasks write accesss get executed step by step.
+
+Another solution would be to use a Concurrent Collection which is thread-safe.
+
+#### Comparison 
+
+The graph "performancetest_100n.csv" is used for this comparsion.
+
+![img.png](images/GetEdgeSeparatorsTime.png)
+
+The synchronous method needs 10300ms (10s) and the asynchronous only 1800ms (1.8s).(With M1 pro)
+
+As you can see there is a big performance difference between the two implementations.
+
+But you have to keep in mind that the creation of tasks also need a lot of ressources,
+which means if you know that you only have to work with small graphs or other not so computationally 
+intensive processes you don't have to use multithreading.
+
+Multithreading is not always faster, I will give an example later.
+
+
+### GetArticulationsAsync()
+
+``` 
+   public IEnumerable<int> GetArticulationsSync()
+    {
+        var subgraphCount = GetSubgraphs().Count();
+        // Geht die Knoten 0, 1, ..., NodeCount-1 durch.
+        foreach (var node in Nodes) {
+            var newGraph = RemoveNode(node);
+            if (newGraph.GetSubgraphs().Count() > subgraphCount)
+                yield return node;
+        }
+    }
+ ```  
+
+ ```
+    public async Task<List<int>> GetArticulationsAsync() {
+        var subgraphCount = GetSubgraphs().Count();
+        var tasks = new List<Task<int>>();  
+        foreach (var node in Nodes) {
+            var task = Task.Run(() => {
+                var newGraph = RemoveNode(node);
+                if (newGraph.GetSubgraphs().Count() > subgraphCount) 
+                    return node;
+                return -1;
+            });
+            tasks.Add(task);
+        }
+        await Task.WhenAll(tasks);
+        return tasks.Select(s => s.Result).Where(n => n != -1).ToList();
+    }
+```
+
+Here we have again a similar use case as before.
+
+Each node must be removed and then we look if there are more subgraphs than before.
+The calculations are independent of each other, which again makes it a perfect case for an asynchronous method.
+
+The implementation here is again quite similar to before.
+
+To avoid writing to shared memory and the need for a lock, our task can return the calculated value. 
+This value is the matching node or -1.
+
+
+### Comparison Articulations and smaller graph
+
+
+![img.png](images/GetArtiTime.png)
+
+Again,as you can see again that the asynchronous version is much faster. (With M1 pro)
+
+![img.png](images/smallerGraphTime.png)
+
+But let's calculate a smaller graph. (With M1 pro)
+
+As you can see in both calculations both asynchronous methods were slower than the synchronous one.
+
+Why? For the instantiation of tasks to be profitable, the computation must require a certain amount 
+of work so that the added value of the tasks outweighs the time required to create them.
+
+
+
+### CalcDistanceMatrix()
+
+Now you might think why not use parralelization everywhere. Here is an example where it does not work.
+
 
 ```
-ANALYSE DES GRAPHEN:
-Distanzmatrix des Graphen (leer = unendlich):
-     0  1  2  3  4  5  6  7
-  0  0  1  1  1
-  1  1  0  1  1
-  2  1  1  0  1
-  3  1  1  1  0
-  4              0  1  1  1
-  5              1  0  1  1
-  6              1  1  0  1
-  7              1  1  1  0
-Anzahl der Knoten: 8
-Anzahl der Kanten: 12
-Knotengrade:
-[0]: 3, [1]: 3, [2]: 3, [3]: 3, [4]: 3, [5]: 3, [6]: 3, [7]: 3
-Der Graph hat 2 Komponenten:
-[0,1,2,3]
-[4,5,6,7]
-Exzentrizitäten der Knoten:
-[0]: inf, [1]: inf, [2]: inf, [3]: inf, [4]: inf, [5]: inf, [6]: inf, [7]: inf
-Durchmesser des Graphen: inf
-Radius des Graphen:      inf
-Zentrum des Graphen:             []
-Artikulationspunkte des Graphen: []
-Brücken des Graphen:             []
+    private void CalcDistanceMatrix()
+    {
+        //instantiation
+        for (int row = 0; row < NodeCount; row++)
+            for (int col = 0; col < NodeCount; col++)
+            {
+                if (row == col) { _distanceMatrix[row, col] = 0; continue; }
+                var weight = _adjacency[row, col];
+                if (weight > 0) { _distanceMatrix[row, col] = weight; continue; }
+            }
+         
+        //We go from i to k to j (i -> k -> j) and measure the distance. If the new distance
+        // is smaller than the stored one, we write it into the distance matrix. So we find the
+        // smallest distance between 2 nodes. The k nodes are necessary, because the nodes are not
+        // directly connected.
+        for (int k = 0; k < NodeCount; k++)
+            for (int i = 0; i < NodeCount; i++)
+                for (int j = 0; j < NodeCount; j++)
+                {
+                    var dist = _distanceMatrix[i, k] + _distanceMatrix[k, j];
+                    if (_distanceMatrix[i, j] is null || _distanceMatrix[i, j] > dist)
+                        _distanceMatrix[i, j] = dist;
+                }
+    }
 ```
 
-### 24n_weighted.csv
+It is important to recognize that the calculations are dependent on each other. This means that parallelization can not be applied.
 
-```
-ANALYSE DES GRAPHEN:
-Distanzmatrix des Graphen (leer = unendlich):
-     0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
-  0  0  3  1  4  3  2  2  3  3  2  3  3  3  1  3  2  2  2  2  2  3  2  3  4
-  1  3  0  2  2  3  2  3  1  4  2  3  2  3  3  1  4  2  3  2  1  1  2  2  3
-  2  1  2  0  3  2  2  1  2  2  1  2  3  2  2  2  3  1  1  1  1  2  2  2  3
-  3  4  2  3  0  1  2  3  1  3  2  3  2  1  3  1  4  2  2  2  2  1  2  2  3
-  4  3  3  2  1  0  1  3  2  3  1  4  3  2  3  2  3  3  2  2  2  2  3  3  4
-  5  2  2  2  2  1  0  3  1  4  2  3  3  3  3  1  4  2  3  1  2  2  2  2  3
-  6  2  3  1  3  3  3  0  2  3  2  3  4  3  3  3  4  2  2  2  2  3  2  3  4
-  7  3  1  2  1  2  1  2  0  4  2  3  3  2  3  2  4  1  3  2  1  2  2  3  4
-  8  3  4  2  3  3  4  3  4  0  3  3  3  2  2  3  4  3  1  3  3  4  3  3  4
-  9  2  2  1  2  1  2  2  2  3  0  3  3  3  3  2  2  2  2  2  1  2  3  3  4
- 10  3  3  2  3  4  3  3  3  3  3  0  3  3  3  2  4  2  3  3  3  2  2  3  4
- 11  3  2  3  2  3  3  4  3  3  3  3  0  3  2  3  3  2  2  2  2  1  2  2  3
- 12  3  3  2  1  2  3  3  2  2  3  3  3  0  2  2  4  1  1  3  3  2  2  3  4
- 13  1  3  2  3  3  3  3  3  2  3  3  2  2  0  2  2  2  1  3  3  2  1  3  4
- 14  3  1  2  1  2  1  3  2  3  2  2  3  2  2  0  3  2  2  1  1  2  1  2  3
- 15  2  4  3  4  3  4  4  4  4  2  4  3  4  2  3  0  3  3  4  3  3  2  3  4
- 16  2  2  1  2  3  2  2  1  3  2  2  2  1  2  2  3  0  2  2  2  1  1  2  3
- 17  2  3  1  2  2  3  2  3  1  2  3  2  1  1  2  3  2  0  2  2  3  2  3  4
- 18  2  2  1  2  2  1  2  2  3  2  3  2  3  3  1  4  2  2  0  2  1  2  1  2
- 19  2  1  1  2  2  2  2  1  3  1  3  2  3  3  1  3  2  2  2  0  1  2  2  3
- 20  3  1  2  1  2  2  3  2  4  2  2  1  2  2  2  3  1  3  1  1  0  1  1  2
- 21  2  2  2  2  3  2  2  2  3  3  2  2  2  1  1  2  1  2  2  2  1  0  2  3
- 22  3  2  2  2  3  2  3  3  3  3  3  2  3  3  2  3  2  3  1  2  1  2  0  1
- 23  4  3  3  3  4  3  4  4  4  4  4  3  4  4  3  4  3  4  2  3  2  3  1  0
-Anzahl der Knoten: 24
-Anzahl der Kanten: 204
-Knotengrade:
-[0]: 18, [1]: 12, [2]: 17, [3]: 20, [4]: 15, [5]: 15, [6]: 20, [7]: 19, [8]: 18,
-[9]: 16, [10]: 17,[11]: 16,[12]: 16, [13]: 17, [14]: 19, [15]: 18, [16]: 20,
-[17]: 20, [18]: 17, [19]: 16, [20]: 20, [21]: 20, [22]: 21, [23]: 1
-Der Graph hat 1 Komponenten:
-[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
-Exzentrizitäten der Knoten:
-[0]: 4, [1]: 4, [2]: 3, [3]: 4, [4]: 4, [5]: 4, [6]: 4, [7]: 4, [8]: 4,
-[9]: 4,[10]: 4, [11]: 4,[12]: 4, [13]: 4, [14]: 3, [15]: 4, [16]: 3,
-[17]: 4, [18]: 4, [19]: 3, [20]: 4, [21]: 3, [22]: 3, [23]: 4
-Durchmesser des Graphen: 4
-Radius des Graphen:      3
-Zentrum des Graphen:             [2,14,16,19,21,22]
-Artikulationspunkte des Graphen: [22]
-Brücken des Graphen:             [[22,23]]
-```
+What I didn't really mention before, it is important to note 
+that parallelization can only be applied if the calculations that are made are independent of each other, 
+because tasks will not always finish at the same speed so it can happen that a value is needed for a calculation 
+that does not yet exist or it might go well but the result is not correct.
+
+In the example, the problem is that a node from the previous calculation is needed to see if the node has changed 
+and there would be a large access to a shared memory(the distancematrix before)
+
+
+
+
+
+### Solution with Single Core
+[Single Core Readme](https://github.com/schletz/GraphenprogrammDotNet)
